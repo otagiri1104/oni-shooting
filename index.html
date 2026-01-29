@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>Shooting Game</title>
+<title>Oni Shooting</title>
 <style>
   body {
     margin: 0;
@@ -20,131 +20,141 @@
 <canvas id="game" width="400" height="600"></canvas>
 
 <script>
+/* ===== Canvas ===== */
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-// ===== ゲーム状態 =====
+/* ===== 画像読み込み ===== */
+const oniImage = new Image();
+oniImage.src = "oni.png";
+
+const playerImage = new Image();
+playerImage.src = "onigiri.png";
+
+/* ===== ゲーム状態 ===== */
 let timeLeft = 30;
 let score = 0;
-let gameOverFlag = false;
+let gameOver = false;
 
-// ===== プレイヤー =====
+/* ===== プレイヤー ===== */
 const player = {
   x: canvas.width / 2,
-  y: canvas.height - 40,
-  radius: 12,
+  y: canvas.height - 50,
+  width: 48,
+  height: 48,
   speed: 5
 };
 
-// ===== 配列 =====
-let enemies = [];
+/* ===== 配列 ===== */
 let bullets = [];
+let enemies = [];
 
-// ===== 難易度 =====
-let enemySpawnInterval = 1000;
-let lastSpawn = 0;
+/* ===== 敵出現管理 ===== */
+let spawnInterval = 1000;
+let lastSpawnTime = 0;
 
-// ===== 入力 =====
+/* ===== 入力 ===== */
 const keys = {};
 document.addEventListener("keydown", e => {
   keys[e.code] = true;
-
-  if (e.code === "Space") {
-    shoot();
-  }
+  if (e.code === "Space") shoot();
 });
 document.addEventListener("keyup", e => {
   keys[e.code] = false;
 });
 
-// ===== 弾発射 =====
+/* ===== 弾 ===== */
 function shoot() {
   bullets.push({
     x: player.x,
-    y: player.y,
+    y: player.y - player.height / 2,
     radius: 4,
     speed: 7
   });
 }
 
-// ===== 敵生成 =====
+/* ===== 敵生成 ===== */
 function spawnEnemy() {
   enemies.push({
-    x: Math.random() * (canvas.width - 20) + 10,
-    y: -20,
-    radius: 12,
-    speed: 1 + score / 1000 // ★スコアで難易度UP
+    x: Math.random() * (canvas.width - 40) + 20,
+    y: -40,
+    width: 48,
+    height: 48,
+    speed: 1.5 + score / 1500
   });
 }
 
-// ===== 更新 =====
-function update(delta) {
-  if (gameOverFlag) return;
+/* ===== 更新 ===== */
+function update(time) {
+  if (gameOver) return;
 
-  // プレイヤー移動
-  if (keys["ArrowLeft"] && player.x > player.radius) {
+  /* プレイヤー移動 */
+  if (keys["ArrowLeft"] && player.x > player.width / 2) {
     player.x -= player.speed;
   }
-  if (keys["ArrowRight"] && player.x < canvas.width - player.radius) {
+  if (keys["ArrowRight"] && player.x < canvas.width - player.width / 2) {
     player.x += player.speed;
   }
 
-  // 弾移動
+  /* 弾移動 */
   bullets.forEach(b => b.y -= b.speed);
   bullets = bullets.filter(b => b.y > -10);
 
-  // 敵移動
+  /* 敵移動 */
   enemies.forEach(e => e.y += e.speed);
 
-  // 敵が下まで行ったら時間減少
+  /* 敵が下に到達 */
   enemies = enemies.filter(e => {
-    if (e.y > canvas.height) {
+    if (e.y > canvas.height + 20) {
       timeLeft -= 1;
       return false;
     }
     return true;
   });
 
-  // ===== 当たり判定 =====
+  /* 当たり判定 */
   bullets.forEach((b, bi) => {
     enemies.forEach((e, ei) => {
-      const dx = b.x - e.x;
-      const dy = b.y - e.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-
-      if (dist < b.radius + e.radius) {
+      if (
+        b.x > e.x - e.width / 2 &&
+        b.x < e.x + e.width / 2 &&
+        b.y > e.y - e.height / 2 &&
+        b.y < e.y + e.height / 2
+      ) {
         bullets.splice(bi, 1);
         enemies.splice(ei, 1);
-
-        timeLeft += 1;   // ★＋1秒
-        score += 100;    // ★スコア加算
+        score += 100;
+        timeLeft += 1;
       }
     });
   });
 
-  // 敵出現
-  if (delta - lastSpawn > enemySpawnInterval) {
+  /* 敵出現 */
+  if (time - lastSpawnTime > spawnInterval) {
     spawnEnemy();
-    lastSpawn = delta;
+    lastSpawnTime = time;
   }
 
-  // ゲームオーバー
+  /* ゲームオーバー */
   if (timeLeft <= 0) {
-    gameOverFlag = true;
+    gameOver = true;
   }
 }
 
-// ===== 描画 =====
+/* ===== 描画 ===== */
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // プレイヤー
-  ctx.fillStyle = "cyan";
-  ctx.beginPath();
-  ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
-  ctx.fill();
+  /* プレイヤー（おにぎり） */
+  ctx.drawImage(
+    playerImage,
+    player.x - player.width / 2,
+    player.y - player.height / 2,
+    player.width,
+    player.height
+  );
 
-  // 弾
+  /* 弾 */
   ctx.fillStyle = "yellow";
   bullets.forEach(b => {
     ctx.beginPath();
@@ -152,48 +162,49 @@ function draw() {
     ctx.fill();
   });
 
-  // 敵
-  ctx.fillStyle = "red";
+  /* 敵（鬼） */
   enemies.forEach(e => {
-    ctx.beginPath();
-    ctx.arc(e.x, e.y, e.radius, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.drawImage(
+      oniImage,
+      e.x - e.width / 2,
+      e.y - e.height / 2,
+      e.width,
+      e.height
+    );
   });
 
-  // UI
+  /* UI */
   ctx.fillStyle = "white";
   ctx.font = "16px sans-serif";
   ctx.textAlign = "left";
   ctx.fillText(`TIME: ${timeLeft}`, 10, 20);
   ctx.fillText(`SCORE: ${score}`, 10, 40);
 
-  // GAME OVER
-  if (gameOverFlag) {
+  /* GAME OVER */
+  if (gameOver) {
     ctx.fillStyle = "rgba(0,0,0,0.7)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     ctx.fillStyle = "white";
     ctx.font = "28px sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 20);
+    ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 10);
     ctx.font = "20px sans-serif";
-    ctx.fillText(`SCORE: ${score}`, canvas.width / 2, canvas.height / 2 + 20);
+    ctx.fillText(`SCORE: ${score}`, canvas.width / 2, canvas.height / 2 + 25);
   }
 }
 
-// ===== ループ =====
-let lastTime = 0;
+/* ===== ループ ===== */
 function loop(time) {
-  const delta = time;
-  update(delta);
+  update(time);
   draw();
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
 
-// ===== タイマー =====
+/* ===== 制限時間 ===== */
 setInterval(() => {
-  if (!gameOverFlag) timeLeft -= 1;
+  if (!gameOver) timeLeft -= 1;
 }, 1000);
 </script>
 
