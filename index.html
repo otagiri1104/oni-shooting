@@ -106,16 +106,13 @@ function spawnEnemy() {
 function update(time) {
   if (gameOver) return;
 
-  /* リサイズ検知 → 一時停止 */
-  if (
+  /* リサイズ検知 → 維持型一時停止 */
+  paused =
     canvas.width !== lockedCanvasWidth ||
-    canvas.height !== lockedCanvasHeight
-  ) {
-    paused = true;
-    return;
-  } else {
-    paused = false;
-  }
+    canvas.height !== lockedCanvasHeight;
+
+  if (paused) return;
+  
 
   /* 開始時点の最小幅チェック */
   if (lockedCanvasWidth < MIN_CANVAS_WIDTH) {
