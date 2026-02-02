@@ -45,6 +45,11 @@ let gameOver = false;
 let paused = false;
 let lastShotTime = 0;
 
+/* ===== 名前入力状態 ===== */
+let inputMode = false;
+let playerName = "";
+let nameFixed = false;
+
 /* ===== キャンバスサイズロック ===== */
 const lockedCanvasWidth = canvas.width;
 const lockedCanvasHeight = canvas.height;
@@ -69,8 +74,31 @@ let lastSpawnTime = 0;
 /* ===== 入力 ===== */
 const keys = {};
 document.addEventListener("keydown", e => {
+
+  /* ===== 名前入力モード ===== */
+  if (gameOver && inputMode && !nameFixed) {
+    if (e.key === "Backspace") {
+      playerName = playerName.slice(0, -1);
+      return;
+    }
+
+    if (e.key === "Enter") {
+      if (playerName.length > 0) {
+        nameFixed = true;
+        inputMode = false;
+      }
+      return;
+    }
+
+    if (playerName.length < 10 && e.key.length === 1) {
+      playerName += e.key;
+      return;
+    }
+  }
+
   keys[e.code] = true;
 });
+
 document.addEventListener("keyup", e => {
   keys[e.code] = false;
 });
@@ -97,7 +125,7 @@ function spawnEnemy() {
     y: -40,
     width: 48,
     height: 48,
-    speed: 1.8 + score / 1500,
+    speed: 1.5 + score / 1500,
     type: isHuku ? "huku" : "normal"
   });
 }
@@ -112,11 +140,11 @@ function update(time) {
     canvas.height !== lockedCanvasHeight;
 
   if (paused) return;
-  
 
   /* 開始時点の最小幅チェック */
   if (lockedCanvasWidth < MIN_CANVAS_WIDTH) {
     gameOver = true;
+    inputMode = true;
     return;
   }
 
@@ -162,6 +190,7 @@ function update(time) {
       ) {
         if (e.type === "huku") {
           gameOver = true;
+          inputMode = true;
           return;
         }
 
@@ -182,6 +211,7 @@ function update(time) {
   /* 時間切れ */
   if (timeLeft <= 0) {
     gameOver = true;
+    inputMode = true;
   }
 }
 
@@ -240,22 +270,62 @@ function draw() {
     );
   }
 
-  /* GAME OVER */
+  /* GAME OVER & 名前入力 */
   if (gameOver) {
     ctx.fillStyle = "rgba(0,0,0,0.7)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     ctx.fillStyle = "white";
-    ctx.font = "28px sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 10);
+
+    ctx.font = "28px sans-serif";
+    ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 60);
 
     ctx.font = "20px sans-serif";
     ctx.fillText(
       `SCORE: ${score}`,
       canvas.width / 2,
-      canvas.height / 2 + 25
+      canvas.height / 2 - 25
     );
+
+    if (!nameFixed) {
+      ctx.font = "18px sans-serif";
+      ctx.fillText(
+        "名前を入力してください",
+        canvas.width / 2,
+        canvas.height / 2 + 20
+      );
+
+      ctx.strokeStyle = "white";
+      ctx.strokeRect(
+        canvas.width / 2 - 120,
+        canvas.height / 2 + 35,
+        240,
+        32
+      );
+
+      ctx.fillText(
+        playerName || "_",
+        canvas.width / 2,
+        canvas.height / 2 + 60
+      );
+
+      ctx.font = "14px sans-serif";
+      ctx.fillText(
+        "Enterで確定 / Backspaceで削除",
+        canvas.width / 2,
+        canvas.height / 2 + 90
+      );
+    }
+
+    if (nameFixed) {
+      ctx.font = "20px sans-serif";
+      ctx.fillText(
+        `WELCOME, ${playerName}!`,
+        canvas.width / 2,
+        canvas.height / 2 + 40
+      );
+    }
   }
 }
 
