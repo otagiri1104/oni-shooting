@@ -28,7 +28,14 @@
     serverTimestamp
   } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
-  const firebaseConfig = { ... };
+  const firebaseConfig = {
+    apiKey: "AIzaSyXXXXXXXX",
+    authDomain: "oni-shooting.firebaseapp.com",
+    projectId: "oni-shooting",
+    storageBucket: "oni-shooting.appspot.com",
+    messagingSenderId: "XXXXXXXX",
+    appId: "1:XXXXXXXX:web:XXXXXXXX"
+  };
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
@@ -44,6 +51,8 @@
 
   console.log("Firebase OK", db);
 </script>
+
+  
 
 
 <script>
