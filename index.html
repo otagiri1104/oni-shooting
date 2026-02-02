@@ -26,7 +26,7 @@ const ctx = canvas.getContext("2d");
 
 /* ===== 定数 ===== */
 const MIN_CANVAS_WIDTH = 120;
-const SHOT_INTERVAL = 250; // ms
+const SHOT_INTERVAL = 250;
 
 /* ===== 画像 ===== */
 const oniImage = new Image();
@@ -42,7 +42,12 @@ playerImage.src = "onigiri.png";
 let timeLeft = 30;
 let score = 0;
 let gameOver = false;
+let paused = false;
 let lastShotTime = 0;
+
+/* ===== キャンバスサイズロック ===== */
+const lockedCanvasWidth = canvas.width;
+const lockedCanvasHeight = canvas.height;
 
 /* ===== プレイヤー ===== */
 const player = {
@@ -101,8 +106,19 @@ function spawnEnemy() {
 function update(time) {
   if (gameOver) return;
 
-  /* 画面幅チェック */
-  if (canvas.width < MIN_CANVAS_WIDTH) {
+  /* リサイズ検知 → 一時停止 */
+  if (
+    canvas.width !== lockedCanvasWidth ||
+    canvas.height !== lockedCanvasHeight
+  ) {
+    paused = true;
+    return;
+  } else {
+    paused = false;
+  }
+
+  /* 開始時点の最小幅チェック */
+  if (lockedCanvasWidth < MIN_CANVAS_WIDTH) {
     gameOver = true;
     return;
   }
@@ -212,6 +228,21 @@ function draw() {
   ctx.fillText(`TIME: ${timeLeft}`, 10, 20);
   ctx.fillText(`SCORE: ${score}`, 10, 40);
 
+  /* PAUSE */
+  if (paused && !gameOver) {
+    ctx.fillStyle = "rgba(0,0,0,0.6)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = "white";
+    ctx.font = "24px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(
+      "PAUSED (SCREEN RESIZED)",
+      canvas.width / 2,
+      canvas.height / 2
+    );
+  }
+
   /* GAME OVER */
   if (gameOver) {
     ctx.fillStyle = "rgba(0,0,0,0.7)";
@@ -222,21 +253,12 @@ function draw() {
     ctx.textAlign = "center";
     ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 10);
 
-    if (canvas.width < MIN_CANVAS_WIDTH) {
-      ctx.font = "16px sans-serif";
-      ctx.fillText(
-        "WINDOW TOO SMALL",
-        canvas.width / 2,
-        canvas.height / 2 + 25
-      );
-    } else {
-      ctx.font = "20px sans-serif";
-      ctx.fillText(
-        `SCORE: ${score}`,
-        canvas.width / 2,
-        canvas.height / 2 + 25
-      );
-    }
+    ctx.font = "20px sans-serif";
+    ctx.fillText(
+      `SCORE: ${score}`,
+      canvas.width / 2,
+      canvas.height / 2 + 25
+    );
   }
 }
 
@@ -250,7 +272,9 @@ requestAnimationFrame(loop);
 
 /* ===== 制限時間 ===== */
 setInterval(() => {
-  if (!gameOver) timeLeft -= 1;
+  if (!gameOver && !paused) {
+    timeLeft -= 1;
+  }
 }, 1000);
 </script>
 
