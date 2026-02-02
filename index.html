@@ -19,6 +19,7 @@
 
 <canvas id="game" width="400" height="600"></canvas>
 
+<!-- Firebase 初期化 -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
   import {
@@ -40,20 +41,22 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
+  // グローバル関数として登録
   window.saveScore = async (name, score) => {
-    await addDoc(collection(db, "scores"), {
-      name,
-      score,
-      createdAt: serverTimestamp()
-    });
-    console.log("score saved");
+    try {
+      await addDoc(collection(db, "scores"), {
+        name,
+        score,
+        createdAt: serverTimestamp()
+      });
+      console.log("score saved");
+    } catch (e) {
+      console.error("Failed to save score", e);
+    }
   };
 
   console.log("Firebase OK", db);
 </script>
-
-  
-
 
 <script>
 /* ===== 追加 ===== */
@@ -286,7 +289,7 @@ function draw() {
       ctx.fillText(playerName || "_", canvas.width / 2, canvas.height / 2 + 60);
     }
 
-    if (nameFixed && !scoreSaved) {
+    if (nameFixed && !scoreSaved && typeof window.saveScore === "function") {
       scoreSaved = true;
       window.saveScore(playerName, score);
     }
@@ -299,9 +302,12 @@ function loop(time) {
   draw();
   requestAnimationFrame(loop);
 }
-requestAnimationFrame(loop);
-</script>
 
+// Firebaseモジュール読み込み後、window.loadでゲーム開始
+window.addEventListener("load", () => {
+  requestAnimationFrame(loop);
+});
+</script>
 
 </body>
 </html>
