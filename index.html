@@ -112,7 +112,10 @@ function update(time) {
   /* 敵が下に到達 */
   enemies = enemies.filter(e => {
     if (e.y > canvas.height + 20) {
-      timeLeft -= 1;
+      // hukuは時間ペナルティなし
+      if (e.type !== "huku") {
+        timeLeft -= 1;
+      }
       return false;
     }
     return true;
