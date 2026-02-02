@@ -22,7 +22,6 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
   import { getFirestore } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
-  // ↑ これが抜けてた！！！
 
   const firebaseConfig = {
     apiKey: "AIzaSyBrKZwUQTSEXsw_TJIBwURvJ8MSdGaU2YQ",
@@ -35,12 +34,12 @@
 
   const app = initializeApp(firebaseConfig);
   window.db = getFirestore(app);
+
+  console.log("Firebase OK", window.db);
 </script>
 
-<script>
-console.log("db:", window.db);
 
-  
+<script>  
 /* ===== Canvas ===== */
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
