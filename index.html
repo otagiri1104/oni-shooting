@@ -24,7 +24,11 @@
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-/* ===== 画像読み込み ===== */
+/* ===== 定数 ===== */
+const MIN_CANVAS_WIDTH = 120;
+const SHOT_INTERVAL = 250; // ms
+
+/* ===== 画像 ===== */
 const oniImage = new Image();
 oniImage.src = "teki.png";
 
@@ -38,6 +42,7 @@ playerImage.src = "onigiri.png";
 let timeLeft = 30;
 let score = 0;
 let gameOver = false;
+let lastShotTime = 0;
 
 /* ===== プレイヤー ===== */
 const player = {
@@ -52,7 +57,7 @@ const player = {
 let bullets = [];
 let enemies = [];
 
-/* ===== 敵出現管理 ===== */
+/* ===== 敵出現 ===== */
 let spawnInterval = 1000;
 let lastSpawnTime = 0;
 
@@ -60,14 +65,16 @@ let lastSpawnTime = 0;
 const keys = {};
 document.addEventListener("keydown", e => {
   keys[e.code] = true;
-  if (e.code === "Space") shoot();
 });
 document.addEventListener("keyup", e => {
   keys[e.code] = false;
 });
 
 /* ===== 弾 ===== */
-function shoot() {
+function shoot(time) {
+  if (time - lastShotTime < SHOT_INTERVAL) return;
+
+  lastShotTime = time;
   bullets.push({
     x: player.x,
     y: player.y - player.height / 2,
@@ -78,7 +85,7 @@ function shoot() {
 
 /* ===== 敵生成 ===== */
 function spawnEnemy() {
-  const isHuku = Math.random() < 0.1; // 10%でhuku
+  const isHuku = Math.random() < 0.1;
 
   enemies.push({
     x: Math.random() * (canvas.width - 40) + 20,
@@ -94,12 +101,23 @@ function spawnEnemy() {
 function update(time) {
   if (gameOver) return;
 
-  /* プレイヤー移動 */
+  /* 画面幅チェック */
+  if (canvas.width < MIN_CANVAS_WIDTH) {
+    gameOver = true;
+    return;
+  }
+
+  /* 移動 */
   if (keys["ArrowLeft"] && player.x > player.width / 2) {
     player.x -= player.speed;
   }
   if (keys["ArrowRight"] && player.x < canvas.width - player.width / 2) {
     player.x += player.speed;
+  }
+
+  /* 発射 */
+  if (keys["Space"]) {
+    shoot(time);
   }
 
   /* 弾移動 */
@@ -112,7 +130,6 @@ function update(time) {
   /* 敵が下に到達 */
   enemies = enemies.filter(e => {
     if (e.y > canvas.height + 20) {
-      // hukuは時間ペナルティなし
       if (e.type !== "huku") {
         timeLeft -= 1;
       }
@@ -130,13 +147,11 @@ function update(time) {
         b.y > e.y - e.height / 2 &&
         b.y < e.y + e.height / 2
       ) {
-        // hukuに当てたら即ゲームオーバー
         if (e.type === "huku") {
           gameOver = true;
           return;
         }
 
-        // 通常敵
         bullets.splice(bi, 1);
         enemies.splice(ei, 1);
         score += 100;
@@ -151,7 +166,7 @@ function update(time) {
     lastSpawnTime = time;
   }
 
-  /* ゲームオーバー */
+  /* 時間切れ */
   if (timeLeft <= 0) {
     gameOver = true;
   }
@@ -206,8 +221,22 @@ function draw() {
     ctx.font = "28px sans-serif";
     ctx.textAlign = "center";
     ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 10);
-    ctx.font = "20px sans-serif";
-    ctx.fillText(`SCORE: ${score}`, canvas.width / 2, canvas.height / 2 + 25);
+
+    if (canvas.width < MIN_CANVAS_WIDTH) {
+      ctx.font = "16px sans-serif";
+      ctx.fillText(
+        "WINDOW TOO SMALL",
+        canvas.width / 2,
+        canvas.height / 2 + 25
+      );
+    } else {
+      ctx.font = "20px sans-serif";
+      ctx.fillText(
+        `SCORE: ${score}`,
+        canvas.width / 2,
+        canvas.height / 2 + 25
+      );
+    }
   }
 }
 
