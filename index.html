@@ -21,21 +21,28 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
-  import { getFirestore } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+  import {
+    getFirestore,
+    collection,
+    addDoc,
+    serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyBrKZwUQTSEXsw_TJIBwURvJ8MSdGaU2YQ",
-    authDomain: "oni-shooting.firebaseapp.com",
-    projectId: "oni-shooting",
-    storageBucket: "oni-shooting.firebasestorage.app",
-    messagingSenderId: "748207593961",
-    appId: "1:748207593961:web:46fda8f55181537c845378"
-  };
+  const firebaseConfig = { ... };
 
   const app = initializeApp(firebaseConfig);
-  window.db = getFirestore(app);
+  const db = getFirestore(app);
 
-  console.log("Firebase OK", window.db);
+  window.saveScore = async (name, score) => {
+    await addDoc(collection(db, "scores"), {
+      name,
+      score,
+      createdAt: serverTimestamp()
+    });
+    console.log("score saved");
+  };
+
+  console.log("Firebase OK", db);
 </script>
 
 
