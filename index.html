@@ -21,45 +21,69 @@
 
 <!-- Firebase 初期化 -->
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
-  import {
-    getFirestore,
-    collection,
-    addDoc,
-    serverTimestamp
-  } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  serverTimestamp,
+  query,
+  orderBy,
+  limit,
+  getDocs
+} from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyXXXXXXXX",
-    authDomain: "oni-shooting.firebaseapp.com",
-    projectId: "oni-shooting",
-    storageBucket: "oni-shooting.appspot.com",
-    messagingSenderId: "XXXXXXXX",
-    appId: "1:XXXXXXXX:web:XXXXXXXX"
-  };
+const firebaseConfig = {
+  apiKey: "AIzaSyXXXXXXXX",
+  authDomain: "oni-shooting.firebaseapp.com",
+  projectId: "oni-shooting",
+  storageBucket: "oni-shooting.appspot.com",
+  messagingSenderId: "XXXXXXXX",
+  appId: "1:XXXXXXXX:web:XXXXXXXX"
+};
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-  // グローバル関数として登録
-  window.saveScore = async (name, score) => {
-    try {
-      await addDoc(collection(db, "scores"), {
-        name,
-        score,
-        createdAt: serverTimestamp()
-      });
-      console.log("score saved");
-    } catch (e) {
-      console.error("Failed to save score", e);
-    }
-  };
+// スコア保存
+window.saveScore = async (name, score) => {
+  try {
+    await addDoc(collection(db, "scores"), {
+      name,
+      score,
+      createdAt: serverTimestamp()
+    });
+    console.log("score saved");
+  } catch (e) {
+    console.error("Failed to save score", e);
+  }
+};
 
-  console.log("Firebase OK", db);
+// 上位3名取得
+window.showTopScores = async () => {
+  try {
+    const q = query(
+      collection(db, "scores"),
+      orderBy("score", "desc"),
+      limit(3)
+    );
+    const snapshot = await getDocs(q);
+    const topScores = [];
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      topScores.push({ name: data.name, score: data.score });
+    });
+    window.topScores = topScores;
+    console.log("Top Scores:", topScores);
+  } catch (e) {
+    console.error("Failed to get top scores", e);
+  }
+};
+
+console.log("Firebase OK", db);
 </script>
 
 <script>
-/* ===== 追加 ===== */
 let scoreSaved = false;
 
 /* ===== Canvas ===== */
@@ -73,10 +97,8 @@ const SHOT_INTERVAL = 250;
 /* ===== 画像 ===== */
 const oniImage = new Image();
 oniImage.src = "teki.png";
-
 const hukuImage = new Image();
 hukuImage.src = "huku.png";
-
 const playerImage = new Image();
 playerImage.src = "onigiri.png";
 
@@ -116,16 +138,13 @@ let lastSpawnTime = 0;
 /* ===== 入力 ===== */
 const keys = {};
 document.addEventListener("keydown", e => {
-
   if (gameOver && inputMode && !nameFixed) {
     if (e.key === "Backspace") {
       playerName = playerName.slice(0, -1);
       return;
     }
     if (e.key === "Enter") {
-      if (playerName.length > 0) {
-        nameFixed = true;
-      }
+      if (playerName.length > 0) nameFixed = true;
       return;
     }
     if (playerName.length < 10 && e.key.length === 1) {
@@ -133,7 +152,6 @@ document.addEventListener("keydown", e => {
       return;
     }
   }
-
   keys[e.code] = true;
 });
 
@@ -169,10 +187,7 @@ function spawnEnemy() {
 /* ===== 更新 ===== */
 function update(time) {
   if (gameOver) return;
-
-  paused =
-    canvas.width !== lockedCanvasWidth ||
-    canvas.height !== lockedCanvasHeight;
+  paused = canvas.width !== lockedCanvasWidth || canvas.height !== lockedCanvasHeight;
   if (paused) return;
 
   if (lockedCanvasWidth < MIN_CANVAS_WIDTH) {
@@ -181,13 +196,8 @@ function update(time) {
     return;
   }
 
-  if (keys["ArrowLeft"] && player.x > player.width / 2) {
-    player.x -= player.speed;
-  }
-  if (keys["ArrowRight"] && player.x < canvas.width - player.width / 2) {
-    player.x += player.speed;
-  }
-
+  if (keys["ArrowLeft"] && player.x > player.width / 2) player.x -= player.speed;
+  if (keys["ArrowRight"] && player.x < canvas.width - player.width / 2) player.x += player.speed;
   if (keys["Space"]) shoot(time);
 
   bullets.forEach(b => b.y -= b.speed);
@@ -236,16 +246,10 @@ function update(time) {
 }
 
 /* ===== 描画 ===== */
-function draw() {
+async function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  ctx.drawImage(
-    playerImage,
-    player.x - player.width / 2,
-    player.y - player.height / 2,
-    player.width,
-    player.height
-  );
+  ctx.drawImage(playerImage, player.x - player.width / 2, player.y - player.height / 2, player.width, player.height);
 
   ctx.fillStyle = "yellow";
   bullets.forEach(b => {
@@ -256,13 +260,7 @@ function draw() {
 
   enemies.forEach(e => {
     const img = e.type === "huku" ? hukuImage : oniImage;
-    ctx.drawImage(
-      img,
-      e.x - e.width / 2,
-      e.y - e.height / 2,
-      e.width,
-      e.height
-    );
+    ctx.drawImage(img, e.x - e.width / 2, e.y - e.height / 2, e.width, e.height);
   });
 
   ctx.fillStyle = "white";
@@ -289,21 +287,33 @@ function draw() {
       ctx.fillText(playerName || "_", canvas.width / 2, canvas.height / 2 + 60);
     }
 
+    // 名前確定後 & スコア未保存なら保存＆ランキング取得
     if (nameFixed && !scoreSaved && typeof window.saveScore === "function") {
       scoreSaved = true;
-      window.saveScore(playerName, score);
+      await window.saveScore(playerName, score);
+      await window.showTopScores();
+    }
+
+    // ランキング表示
+    if (window.topScores && window.topScores.length > 0) {
+      ctx.fillStyle = "yellow";
+      ctx.font = "18px sans-serif";
+      ctx.fillText("TOP 3", canvas.width / 2, canvas.height / 2 + 100);
+      window.topScores.forEach((entry, i) => {
+        ctx.fillText(`${i + 1}. ${entry.name} : ${entry.score}`, canvas.width / 2, canvas.height / 2 + 130 + i * 25);
+      });
     }
   }
 }
 
 /* ===== ループ ===== */
-function loop(time) {
+async function loop(time) {
   update(time);
-  draw();
+  await draw();
   requestAnimationFrame(loop);
 }
 
-// Firebaseモジュール読み込み後、window.loadでゲーム開始
+// ゲーム開始
 window.addEventListener("load", () => {
   requestAnimationFrame(loop);
 });
