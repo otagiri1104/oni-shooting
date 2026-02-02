@@ -37,15 +37,13 @@
 
   // Initialize Firebase
   const app = initializeApp(firebaseConfig);
+  window.db = getFirestore(app); // ← ゲームから使えるようにする
 </script>
 
-
+<script>
 console.log("db:", window.db);
 
-
-
   
-<script>
 /* ===== Canvas ===== */
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
